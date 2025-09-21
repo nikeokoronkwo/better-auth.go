@@ -1,0 +1,54 @@
+-- TODO: Migrate to Go-Based
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+DROP TABLE IF EXISTS {{.User}};
+DROP TABLE IF EXISTS {{.Session}};
+
+-- TODO: Add UUID Support (https://github.com/vgarvardt/pgx-google-uuid, https://github.com/google/uuid)
+CREATE TABLE {{.User}} (
+    id TEXT NOT NULL PRIMARY KEY
+    name TEXT NOT NULL
+    email TEXT NOT NULL
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE {{.Session}} (
+    id TEXT NOT NULL PRIMARY KEY
+    user_id TEXT NOT NULL REFERENCES {{.User}}(id)
+    token TEXT NOT NULL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    expires_at TIMESTAMPTZ NOT NULL
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    ip_address TEXT
+    user_agent TEXT
+);
+
+-- Where OAuth, Passworded, Etc live
+CREATE TABLE account (
+    id TEXT NOT NULL PRIMARY KEY
+    user_id TEXT NOT NULL REFERENCES {{.User}}(id)
+    provider_id TEXT NOT NULL -- The ID of the provider
+    account_id TEXT NOT NULL -- The ID of the account as provided by the SSO or equal to userId for credential accounts
+    access_token TEXT -- The access token of the account. Returned by the provider
+    refresh_token TEXT -- The refresh token of the account. Returned by the provider
+    access_token_expires_at TIMESTAMPTZ -- The expiration date of the access token
+    refresh_token_expires_at TIMESTAMPTZ -- The expiration date of the refresh token
+    scope TEXT -- The scope of the account. Returned by the provider
+    id_token TEXT -- The ID token of the account. Returned by the provider
+    password TEXT -- The password of the account if email/password
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    UNIQUE (provider_id, account_id)
+);
+
+CREATE TABLE verification (
+    id TEXT NOT NULL PRIMARY KEY
+    user_id TEXT NOT NULL REFERENCES {{.User}}(id)
+    token TEXT NOT NULL
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    expires_at TIMESTAMPTZ NOT NULL
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
